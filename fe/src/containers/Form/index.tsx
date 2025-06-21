@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-toastify";
 
 const input = `w-full border rounded px-3 py-2 mb-2 focus:outline-none focus:ring focus:border-blue-500`;
 
@@ -11,25 +12,26 @@ const Form = () => {
 
   const handleSubmit = (e: any) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-    // Send data to backend API here
-    console.log(data);
+    // const formData = new FormData(e.target);
+    // const data = Object.fromEntries(formData);
+    // // Send data to backend API here
+    // console.log(data);
+    toast("Success", {
+      position: "bottom-center",
+      autoClose: 5000,
+    });
   };
   return (
     <div className="flex-1 flex flex-col">
       <div className="w-full flex justify-end">
         <button
-          type="submit"
+          onClick={handleSubmit}
           className="py-2 px-5 bg-blue-500 text-slate-50 shadow rounded text-center hover:cursor-pointer"
         >
           Gửi
         </button>
       </div>
-      <form
-        onSubmit={handleSubmit}
-        className="max-w-3xl mx-auto p-4 space-y-6 border overflow-auto"
-      >
+      <form className="max-w-3xl mx-auto p-4 space-y-6 border overflow-auto">
         {/* 1. Personal Information */}
         <section>
           <h2 className="text-xl font-bold mb-2">1. Thông tin cá nhân</h2>
@@ -80,21 +82,6 @@ const Form = () => {
               <input
                 name={`job_description_${i}`}
                 placeholder="Mô tả công việc"
-                className={input}
-              />
-              <input
-                name={`project_role_${i}`}
-                placeholder="Vai trò trong dự án"
-                className={input}
-              />
-              <input
-                name={`pain_points_${i}`}
-                placeholder="Khó khăn & cách giải quyết"
-                className={input}
-              />
-              <input
-                name={`tech_stack_${i}`}
-                placeholder="Tech stack"
                 className={input}
               />
             </div>
