@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { toast } from "react-toastify";
+import { useContext, useState } from "react";
+import { AppContext } from "../../AppContext";
 
 const input = `w-full border rounded px-3 py-2 mb-2 focus:outline-none focus:ring focus:border-blue-500`;
 
@@ -10,28 +10,18 @@ const Form = () => {
   const addExperience = () => setExperiences([...experiences, {}]);
   const addCertificate = () => setCertificates([...certificates, {}]);
 
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
-    // const formData = new FormData(e.target);
-    // const data = Object.fromEntries(formData);
-    // // Send data to backend API here
-    // console.log(data);
-    toast("Success", {
-      position: "bottom-center",
-      autoClose: 5000,
-    });
-  };
+  const { handleSubmit } = useContext(AppContext);
   return (
-    <div className="flex-1 flex flex-col">
+    <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
       <div className="w-full flex justify-end">
         <button
-          onClick={handleSubmit}
+          type="submit"
           className="py-2 px-5 bg-blue-500 text-slate-50 shadow rounded text-center hover:cursor-pointer"
         >
           Gửi
         </button>
       </div>
-      <form className="max-w-3xl mx-auto p-4 space-y-6 border overflow-auto">
+      <div className="max-w-3xl mx-auto p-4 space-y-6 border overflow-auto">
         {/* 1. Personal Information */}
         <section>
           <h2 className="text-xl font-bold mb-2">1. Thông tin cá nhân</h2>
@@ -169,8 +159,8 @@ const Form = () => {
             className={input}
           />
         </section>
-      </form>
-    </div>
+      </div>
+    </form>
   );
 };
 
