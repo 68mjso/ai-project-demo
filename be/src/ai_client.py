@@ -4,12 +4,10 @@ from typing import Any, Dict, List
 
 import httpx
 from dotenv import load_dotenv
-from sqlalchemy.orm import Session
-from models import Conversation, Message
-from main import Item
-from redis_config import redis_manager
+from models import Conversation, Message, MessageRequest
 from openai import AzureOpenAI
-
+from redis_config import redis_manager
+from sqlalchemy.orm import Session
 
 load_dotenv()
 
@@ -92,7 +90,9 @@ async def save_message_to_db(
     return message
 
 
-async def ask_AI(conversation_id: str, item: Item, db: Session) -> Dict[str, Any]:
+async def ask_AI(
+    conversation_id: str, item: MessageRequest, db: Session
+) -> Dict[str, Any]:
     """Send a message to the Azure OpenAI and return the response."""
 
     # Check rate limiting
@@ -125,7 +125,7 @@ async def ask_AI(conversation_id: str, item: Item, db: Session) -> Dict[str, Any
         except json.JSONDecodeError:
             return {"response": rawData}
     except Exception as e:
-        print(f"Error calling OpenAI API: {e}")
+        print("Error calling OpenAI API:", e)
         return {"error": "Failed to get AI response"}
 
 

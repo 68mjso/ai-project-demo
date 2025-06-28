@@ -1,10 +1,16 @@
 import uuid
 from datetime import datetime
+
+from database import Base
 from pydantic import BaseModel
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from database import Base
+
+
+# Pydantic models for API
+class MessageRequest(BaseModel):
+    message: str
 
 
 class ConversationResponse(BaseModel):
@@ -21,7 +27,6 @@ class MessageCreate(BaseModel):
 
 
 class MessageResponse(BaseModel):
-    id: str
     conversation_id: str
     role: str
     content: str

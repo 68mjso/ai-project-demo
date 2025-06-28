@@ -1,31 +1,17 @@
-import uvicorn
-from dotenv import load_dotenv
-from fastapi import (
-    FastAPI,
-    Depends,
-    HTTPException,
-)
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from models import (
-    Conversation,
-    ConversationResponse,
-    MessageResponse,
-)
-from database import get_db, engine, Base
-from ai_client import ask_AI, get_conversation_history
-from sqlalchemy import text
-from redis_config import redis_manager
-from pydantic import BaseModel
+from datetime import datetime
 
+import uvicorn
+from ai_client import ask_AI, get_conversation_history
+from database import Base, engine, get_db
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from models import Conversation, ConversationResponse, MessageRequest, MessageResponse
+from redis_config import redis_manager
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 load_dotenv()
-
-
-# Pydantic models for API
-class Item(BaseModel):
-    message: str
 
 
 # Create database tables
@@ -105,17 +91,22 @@ async def get_messages(conversation_id: str, db: Session = Depends(get_db)):
 # Post message with conversation ID
 @app.post("/conversations/{conversation_id}/messages")
 async def chat_message(
-    conversation_id: str, body: Item, db: Session = Depends(get_db)
+    conversation_id: str, body: MessageRequest, db: Session = Depends(get_db)
 ) -> MessageResponse:
     """Send a message to a specific conversation"""
     try:
         response = await ask_AI(conversation_id, body, db)
+
+        if "error" in response:
+            raise HTTPException(status_code=400, detail=response["error"])
+
         return MessageResponse(
-            id=str(response["id"]),
             conversation_id=conversation_id,
-            role=response["role"],
-            content=response["content"],
-            created_at=response["created_at"],
+            role="assistant",
+            content=(
+                response["display_question"] if "display_question" in response else ""
+            ),
+            created_at=datetime.utcnow(),
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
