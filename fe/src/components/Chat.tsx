@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { AppContext } from "../AppContext";
 import ReactMarkdown from "react-markdown";
 
@@ -9,33 +9,42 @@ type Message = {
   created_at?: string;
 };
 
-function renderMessage(rawMessage: string): string {
+function renderMessage(
+  rawMessage: string | Record<string, string | string[]>,
+): string {
   if (
-    rawMessage.startsWith(
-      "I have these information, please let me know what information I should provide to build a complete and detailed professional profile:",
-    )
+    typeof rawMessage === "string" &&
+    rawMessage.startsWith("I have these information, please let me know")
   ) {
     return "**Information Provided**";
   }
-  try {
-    const message = JSON.parse(rawMessage);
-    let content = "";
 
-    if (message.next_question) {
-      content += `**${message.next_question}**\n\n`;
+  let message = rawMessage as Record<string, string | string[]>;
+
+  if (typeof rawMessage !== "object") {
+    try {
+      message = JSON.parse(rawMessage);
+    } catch {
+      return rawMessage;
     }
-
-    if (message.examples && message.examples.length > 0) {
-      content +=
-        `Examples:\n\n` +
-        message.examples.map((example: string) => `* ${example}`).join("\n");
-      content += "\n\n";
-    }
-
-    return content || message.content || "No content available";
-  } catch {
-    return rawMessage; // Return raw message if parsing fails
   }
+
+  let content = "";
+
+  if (message.next_question) {
+    content += `**${message.next_question}**\n\n`;
+  }
+
+  if (message.examples && message.examples.length > 0) {
+    content +=
+      `Examples:\n\n` +
+      (message.examples as string[])
+        .map((example: string) => `* ${example}`)
+        .join("\n");
+    content += "\n\n";
+  }
+
+  return content;
 }
 
 const Chat = () => {
@@ -47,6 +56,13 @@ const Chat = () => {
 
   const { messages, submitChat, input, setInput, currentConversationId } =
     context;
+
+  useEffect(() => {
+    const chatBox = document.getElementById("chat-box");
+    if (chatBox) {
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  }, [messages.length]);
 
   if (!currentConversationId) {
     return (

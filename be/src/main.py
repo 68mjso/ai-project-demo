@@ -101,20 +101,23 @@ async def chat_message(
         if "error" in response:
             raise HTTPException(status_code=400, detail=response["error"])
 
-        # Extract the content to display - prioritize display_question, fallback to extracted_questions
-        content = (
+        # Extract the question to display
+        question = (
             response.get("next_question")
             or "I apologize, but I couldn't generate a proper response. Could you please try rephrasing your message?"
         )
+        examples = response.get("examples", [])
 
-        # Ensure content is a string
-        if not isinstance(content, str):
-            content = str(content)
+        if not isinstance(question, str):
+            question = str(question)
 
         return MessageResponse(
             conversation_id=conversation_id,
             role="assistant",
-            content=content,
+            content={
+                "next_question": question,
+                "examples": examples,
+            },
             created_at=datetime.utcnow(),
         )
     except HTTPException:

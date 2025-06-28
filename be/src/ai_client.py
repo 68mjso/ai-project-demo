@@ -138,6 +138,7 @@ async def ask_AI(
 {item.message}
 
 If you need more information, ask the user specific questions.
+Always push the user to provide as much specific information as possible.
 
 Respond in JSON format with the following structure:
 ```json

@@ -29,7 +29,7 @@ class MessageCreate(BaseModel):
 class MessageResponse(BaseModel):
     conversation_id: str
     role: str
-    content: str
+    content: dict[str, str | list[str]]
     created_at: datetime
 
     class Config:
