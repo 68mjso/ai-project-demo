@@ -1,0 +1,180 @@
+import uvicorn
+from dotenv import load_dotenv
+from fastapi import (
+    FastAPI,
+    Depends,
+    HTTPException,
+)
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from models import (
+    Conversation,
+    ConversationResponse,
+    MessageResponse,
+)
+from database import get_db, engine, Base
+from ai_client import ask_AI, get_conversation_history
+from sqlalchemy import text
+from redis_config import redis_manager
+from pydantic import BaseModel
+
+
+load_dotenv()
+
+
+# Pydantic models for API
+class Item(BaseModel):
+    message: str
+
+
+# Create database tables
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title="AI Chat API with PostgreSQL and Redis",
+    description="A FastAPI application with PostgreSQL for persistence and Redis for caching",
+    version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# Health check endpoints
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        # Test database connection
+        db = next(get_db())
+        db.execute(text("SELECT 1"))
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+
+    try:
+        # Test Redis connection
+        redis_manager.client.ping()
+        redis_status = "healthy"
+    except Exception as e:
+        redis_status = f"unhealthy: {str(e)}"
+
+    return {
+        "status": (
+            "healthy"
+            if db_status == "healthy" and redis_status == "healthy"
+            else "unhealthy"
+        ),
+        "database": db_status,
+        "redis": redis_status,
+    }
+
+
+# Create new conversation
+@app.post("/conversations", response_model=ConversationResponse)
+async def create_conversation(db: Session = Depends(get_db)):
+    """Create a new conversation"""
+    conversation = Conversation()
+    db.add(conversation)
+    db.commit()
+    db.refresh(conversation)
+
+    return ConversationResponse(
+        id=str(conversation.id),
+        created_at=conversation.created_at,
+    )
+
+
+# Get conversation history
+@app.get("/conversations/{conversation_id}/messages")
+async def get_messages(conversation_id: str, db: Session = Depends(get_db)):
+    """Get all messages for a conversation"""
+    try:
+        messages = await get_conversation_history(conversation_id, db)
+        return {"messages": messages}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Post message with conversation ID
+@app.post("/conversations/{conversation_id}/messages")
+async def chat_message(
+    conversation_id: str, body: Item, db: Session = Depends(get_db)
+) -> MessageResponse:
+    """Send a message to a specific conversation"""
+    try:
+        response = await ask_AI(conversation_id, body, db)
+        return MessageResponse(
+            id=str(response["id"]),
+            conversation_id=conversation_id,
+            role=response["role"],
+            content=response["content"],
+            created_at=response["created_at"],
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Get all conversations
+@app.get("/conversations")
+async def get_conversations(
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+):
+    """Get all conversations with pagination"""
+    conversations = db.query(Conversation).offset(skip).limit(limit).all()
+
+    return {
+        "conversations": [
+            ConversationResponse(id=str(conv.id), created_at=conv.created_at)
+            for conv in conversations
+        ]
+    }
+
+
+# Delete conversation
+@app.delete("/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str, db: Session = Depends(get_db)):
+    """Delete a conversation and all its messages"""
+    conversation = (
+        db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    )
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Delete from cache
+    await redis_manager.delete_conversation_cache(conversation_id)
+
+    # Delete from database
+    db.delete(conversation)
+    db.commit()
+
+    return {"message": "Conversation deleted successfully"}
+
+
+# Root endpoint for checking if the server is running
+@app.get("/")
+async def root():
+    return {
+        "message": "AI Chat API is running",
+        "endpoints": {
+            "health": "/health",
+            "create_conversation": "POST /conversations",
+            "send_message": "POST /conversations/{conversation_id}/messages",
+            "get_messages": "GET /conversations/{conversation_id}/messages",
+            "get_conversations": "GET /conversations",
+            "delete_conversation": "DELETE /conversations/{conversation_id}",
+            "legacy_api": "POST /api (requires X-Request-ID header)",
+            "legacy_id": "GET /id",
+        },
+    }
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=3000)
