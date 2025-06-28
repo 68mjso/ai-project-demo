@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: ai_postgres_db
+    environment:
+      POSTGRES_DB: ai_postgres
+      POSTGRES_USER: ai_postgres
+      POSTGRES_PASSWORD: ai_postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./be/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 35432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_postgres -d ai_postgres"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7.2.5-alpine
+    container_name: ai_redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - 36379:6379
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # backend:
+  #   build:
+  #     context: ./be
+  #     dockerfile: Dockerfile
+  #   container_name: ai_backend
+  #   ports:
+  #     - 3000:3000
+  #   environment:
+  #     - DATABASE_URL=postgresql://ai_postgres:ai_postgres@postgres:5432/ai_postgres
+  #     - REDIS_URL=redis://redis:6379
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./be:/app
+  #   restart: unless-stopped
+
+  # frontend:
+  #   build:
+  #     context: ./fe
+  #     dockerfile: Dockerfile
+  #   container_name: ai_frontend
+  #   ports:
+  #     - 5173:5173
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ./fe:/app
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,10 +1,15 @@
-import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./containers/Layout";
-import Form from "./containers/Form";
-import Chat from "./containers/Chat";
-import { ToastContainer } from "react-toastify";
-import { AppContextProvider } from "./AppContext";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+
+import Layout from './components/Layout';
+import Welcome from './components/Welcome';
+import Form from './components/Form';
+import Chat from './components/Chat';
+
+import { AppContextProvider } from './AppContext';
+import './App.css';
+import 'react-toastify/dist/ReactToastify.css';
+
 function App() {
   return (
     <AppContextProvider>
@@ -13,6 +18,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Layout />}>
+              <Route index element={<Welcome />} />
               <Route path="form" element={<Form />} />
               <Route path="chat" element={<Chat />} />
             </Route>
