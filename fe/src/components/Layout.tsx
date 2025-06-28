@@ -13,13 +13,13 @@ const Layout = () => {
   const {
     conversations,
     currentConversationId,
-    createNewConversation,
+    createConversation,
     selectConversation,
     deleteConversation
   } = context;
 
   const handleNewConversation = async () => {
-    const conversationId = await createNewConversation();
+    const conversationId = await createConversation();
     if (conversationId) {
       navigate("/form");
     }

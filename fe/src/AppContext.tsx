@@ -23,7 +23,7 @@ type AppContextType = {
   currentConversationId: string | null;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<string | null>;
   submitChat: () => void;
-  createNewConversation: () => Promise<string | null>;
+  createConversation: () => Promise<string | null>;
   selectConversation: (conversationId: string) => Promise<void>;
   loadConversations: () => void;
   deleteConversation: (conversationId: string) => void;
@@ -123,9 +123,9 @@ export const AppContextProvider = ({ children }) => {
         ...prev,
         { role: 'user', content: initialMessage },
         {
-          role: response.data.role,
-          content: response.data.content,
-          created_at: response.data.created_at,
+          role: 'assistant',
+          content: response.data,
+          created_at: Date.now().toString(),
         },
       ]);
 
@@ -192,7 +192,7 @@ export const AppContextProvider = ({ children }) => {
         currentConversationId,
         handleSubmit,
         submitChat,
-        createNewConversation: createConversation,
+        createConversation,
         selectConversation,
         loadConversations,
         deleteConversation,

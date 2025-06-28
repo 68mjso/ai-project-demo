@@ -18,13 +18,14 @@ const Form = () => {
     return <div>Loading...</div>;
   }
 
-  const { handleSubmit, currentConversationId } = context;
+  const { handleSubmit, currentConversationId, selectConversation } = context;
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     const conversationId = await handleSubmit(e);
     if (conversationId) {
+      selectConversation(conversationId);
       // Navigate to chat page after successful submission
-      setTimeout(() => navigate('/chat'), 500);
+      setTimeout(() => navigate('/chat'), 1000);
     }
   };
 

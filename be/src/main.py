@@ -103,9 +103,7 @@ async def chat_message(
 
         # Extract the content to display - prioritize display_question, fallback to extracted_questions
         content = (
-            response.get("display_question")
-            or response.get("extracted_questions")
-            or response.get("response")
+            response.get("next_question")
             or "I apologize, but I couldn't generate a proper response. Could you please try rephrasing your message?"
         )
 

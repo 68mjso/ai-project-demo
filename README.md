@@ -18,12 +18,18 @@ This project is a full-stack AI chat application with FastAPI backend, React fro
 
 ### Setup
 
-1. Start all services:
+1. Set up environment variables:
+   - Modify the docker-compose.yml file to include your OpenAI API key.
+     ```env
+     OPENAI_KEY=your_openai_api_key
+     ```
+
+2. Start all services:
    ```bash
    docker-compose up --build
    ```
 
-2. Access the application:
+3. Access the application:
    - Frontend: http://localhost:5173
    - Backend API: http://localhost:3000
 
@@ -40,12 +46,3 @@ This project is a full-stack AI chat application with FastAPI backend, React fro
 - `GET /` - Root endpoint with API information
 - `GET /health` - Health check for database and Redis
 
-### Database Migrations
-
-The database schema is automatically created when the backend starts. For migrations:
-
-```bash
-cd be
-alembic revision --autogenerate -m "description"
-alembic upgrade head
-```

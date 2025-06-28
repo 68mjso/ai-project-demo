@@ -133,9 +133,38 @@ async def ask_AI(
         return {"error": "Rate limit exceeded. Please try again later."}
 
     try:
+        # Craft prompt
+        prompt = f"""
+{item.message}
+
+If you need more information, ask the user specific questions.
+
+Respond in JSON format with the following structure:
+```json
+{{
+    "next_question": "Your question here",
+    "examples": ["Example 1", "Example 2"],
+    "summary": {{
+        "skills": "summary of skills. Include specific technologies or methodologies if applicable.",
+        "experience": "summary of work experience. Include specific roles or projects if applicable.",
+        "education": "summary of education. Include degrees or certifications if applicable.",
+        "career_goals": "summary of career goals. Include specific aspirations or industries if applicable.",
+        "matching": "summary of how the user's profile matches the wanted job and position. Include specific skills or experiences that align with the requirements.",
+        "level": "summary of the user's level of expertise. Include specific levels such as junior, mid-level, or senior."
+        "wanted_level": "summary of the user's level of expertise in the field of the wanted job and position. Include specific levels such as junior, mid-level, or senior."
+    }},
+    "completed": bool,
+}}
+
+With the following rules:
+- Always respond in JSON format.
+- If you cannot answer, return a JSON object with an error message.
+- Only set the "completed" field to `true` when you have enough information to conclude the conversation.
+```
+        """
         # Get conversation messages
         messages = await get_conversation_messages(conversation_id, db)
-        messages.append({"role": "user", "content": item.message})
+        messages.append({"role": "user", "content": prompt})
 
         # Ensure we have the required environment variables
         model = os.getenv("OPENAI_MODEL")
@@ -163,10 +192,10 @@ async def ask_AI(
         except (json.JSONDecodeError, ValueError) as e:
             print(f"JSON parsing error: {str(e)}, Raw response: {rawData}")
             data = {
-                "extracted_questions": "I apologize, but I had trouble formatting my response. Could you please rephrase your last message?",
-                "examples": None,
-                "display_question": "I apologize, but I had trouble formatting my response. Could you please rephrase your last message?",
-                "summary": None,
+                "next_question": "I apologize, but I had trouble formatting my response. Could you please rephrase your last message?",
+                "examples": [],
+                "summary": {},
+                "completed": False,
             }
         finally:
             # Save the raw response even if it's not valid JSON
