@@ -1,6 +1,6 @@
-import { useContext, useEffect } from "react";
-import { AppContext } from "../AppContext";
-import ReactMarkdown from "react-markdown";
+import { useContext, useEffect } from 'react';
+import { AppContext } from '../AppContext';
+import ReactMarkdown from 'react-markdown';
 
 type Message = {
   id?: string;
@@ -9,19 +9,17 @@ type Message = {
   created_at?: string;
 };
 
-function renderMessage(
-  rawMessage: string | Record<string, string | string[]>,
-): string {
+function renderMessage(rawMessage: string | Record<string, string | string[]>): string {
   if (
-    typeof rawMessage === "string" &&
-    rawMessage.startsWith("I have these information, please let me know")
+    typeof rawMessage === 'string' &&
+    rawMessage.startsWith('I have these information, please let me know')
   ) {
-    return "**Information Provided**";
+    return '**Information Provided**';
   }
 
   let message = rawMessage as Record<string, string | string[]>;
 
-  if (typeof rawMessage !== "object") {
+  if (typeof rawMessage !== 'object') {
     try {
       message = JSON.parse(rawMessage);
     } catch {
@@ -29,7 +27,7 @@ function renderMessage(
     }
   }
 
-  let content = "";
+  let content = '';
 
   if (message.next_question) {
     content += `**${message.next_question}**\n\n`;
@@ -38,10 +36,8 @@ function renderMessage(
   if (message.examples && message.examples.length > 0) {
     content +=
       `Examples:\n\n` +
-      (message.examples as string[])
-        .map((example: string) => `* ${example}`)
-        .join("\n");
-    content += "\n\n";
+      (message.examples as string[]).map((example: string) => `* ${example}`).join('\n');
+    content += '\n\n';
   }
 
   return content;
@@ -54,11 +50,10 @@ const Chat = () => {
     return <div>Loading...</div>;
   }
 
-  const { messages, submitChat, input, setInput, currentConversationId } =
-    context;
+  const { messages, submitChat, input, setInput, currentConversationId } = context;
 
   useEffect(() => {
-    const chatBox = document.getElementById("chat-box");
+    const chatBox = document.getElementById('chat-box');
     if (chatBox) {
       chatBox.scrollTop = chatBox.scrollHeight;
     }
@@ -68,9 +63,7 @@ const Chat = () => {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-600 mb-4">
-            No Conversation Selected
-          </h2>
+          <h2 className="text-xl font-bold text-gray-600 mb-4">No Conversation Selected</h2>
           <p className="text-gray-500">
             Please select a conversation from the sidebar or create a new one
           </p>
@@ -83,9 +76,7 @@ const Chat = () => {
     <div className="flex-1 h-full flex flex-col">
       {/* Header */}
       <div className="p-4 bg-gray-50 border-b">
-        <h1 className="text-xl font-semibold text-gray-800">
-          AI Career Assistant
-        </h1>
+        <h1 className="text-xl font-semibold text-gray-800">AI Career Assistant</h1>
         <p className="text-sm text-gray-600">
           Ask questions about your career development and professional growth
         </p>
@@ -118,13 +109,11 @@ const Chat = () => {
         )}
 
         {messages.map((message: Message, i: number) => {
-          if (message.role === "user") {
+          if (message.role === 'user') {
             return (
               <div key={i} className="flex justify-end">
                 <div className="bg-blue-500 text-white rounded-xl shadow p-4 max-w-3xl overflow-auto markdown">
-                  <ReactMarkdown>
-                    {renderMessage(message.content)}
-                  </ReactMarkdown>
+                  <ReactMarkdown>{renderMessage(message.content)}</ReactMarkdown>
                 </div>
               </div>
             );
@@ -145,7 +134,7 @@ const Chat = () => {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && submitChat()}
+            onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && submitChat()}
             type="text"
             placeholder="Ask about career advice, skill development, job opportunities..."
             className="flex-1 border border-gray-300 rounded-full px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"

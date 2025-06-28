@@ -1,6 +1,6 @@
-import { Outlet, useNavigate } from "react-router-dom";
-import { useContext } from "react";
-import { AppContext } from "../AppContext";
+import { Outlet, useNavigate } from 'react-router-dom';
+import { useContext } from 'react';
+import { AppContext } from '../AppContext';
 
 const Layout = () => {
   const context = useContext(AppContext);
@@ -10,24 +10,15 @@ const Layout = () => {
     return <div>Loading...</div>;
   }
 
-  const {
-    conversations,
-    currentConversationId,
-    createConversation,
-    selectConversation,
-    deleteConversation
-  } = context;
+  const { conversations, currentConversationId, selectConversation, deleteConversation } = context;
 
   const handleNewConversation = async () => {
-    const conversationId = await createConversation();
-    if (conversationId) {
-      navigate("/form");
-    }
+    navigate('/form');
   };
 
   const handleSelectConversation = async (conversationId: string) => {
     await selectConversation(conversationId);
-    navigate("/chat");
+    navigate('/chat');
   };
 
   return (
@@ -53,15 +44,14 @@ const Layout = () => {
               conversations.map((conversation) => (
                 <div
                   key={conversation.id}
-                  className={`p-3 rounded border cursor-pointer transition-colors ${currentConversationId === conversation.id
-                    ? 'bg-blue-100 border-blue-300'
-                    : 'bg-gray-50 hover:bg-gray-100'
-                    }`}
+                  className={`p-3 rounded border cursor-pointer transition-colors ${
+                    currentConversationId === conversation.id
+                      ? 'bg-blue-100 border-blue-300'
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
                   onClick={() => handleSelectConversation(conversation.id)}
                 >
-                  <div className="text-sm font-medium">
-                    Conversation
-                  </div>
+                  <div className="text-sm font-medium">Conversation</div>
                   <div className="text-xs text-gray-500">
                     {new Date(conversation.created_at).toLocaleDateString()}
                   </div>
