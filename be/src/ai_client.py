@@ -15,10 +15,16 @@ load_dotenv()
 if not os.getenv("OPENAI_HOST") or not os.getenv("OPENAI_KEY"):
     raise ValueError("Missing config for OpenAI.")
 
+openai_host = os.getenv("OPENAI_HOST")
+openai_key = os.getenv("OPENAI_KEY")
+
+if not openai_host or not openai_key:
+    raise ValueError("Missing required OpenAI configuration")
+
 client = AzureOpenAI(
     api_version="2025-04-01-preview",
-    azure_endpoint=os.getenv("OPENAI_HOST"),
-    api_key=os.getenv("OPENAI_KEY"),
+    azure_endpoint=openai_host,
+    api_key=openai_key,
     http_client=httpx.Client(verify=False),
 )
 
@@ -26,6 +32,32 @@ client = AzureOpenAI(
 system_prompt_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "prompts", "sys_prompt.txt")
 )
+
+
+def load_system_prompt() -> str:
+    """Load the system prompt with fallback handling."""
+    try:
+        # Try to load the main system prompt
+        with open(system_prompt_path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            if content:
+                return content
+    except (FileNotFoundError, IOError, UnicodeDecodeError) as e:
+        print(f"Warning: Could not load main system prompt: {e}")
+
+    # Fallback
+    return """
+You are a professional AI career assistant.
+Help users refine their CVs by asking specific questions about their experience, skills, and career goals.
+Always respond in JSON format with the structure:
+
+{
+    "extracted_questions": "Your question here",
+    "examples": ["Example 1", "Example 2"],
+    "display_question": "Formatted question with examples",
+    "summary": null
+}
+"""
 
 
 async def get_conversation_messages(
@@ -50,8 +82,9 @@ async def get_conversation_messages(
         db.commit()
         db.refresh(conversation)
 
-        # Initialize with system prompt
-        system_prompt = open("sys_prompt.txt", "r").read()
+        # Initialize with system prompt using the improved loading function
+        system_prompt = load_system_prompt()
+
         system_message = Message(
             conversation_id=conversation.id, role="system", content=system_prompt
         )
@@ -104,29 +137,50 @@ async def ask_AI(
         messages = await get_conversation_messages(conversation_id, db)
         messages.append({"role": "user", "content": item.message})
 
+        # Ensure we have the required environment variables
+        model = os.getenv("OPENAI_MODEL")
+        if not model:
+            return {"error": "OpenAI model not configured"}
+
+        # Make the API call with improved parameters
         response = client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL"),
-            messages=messages,
-            max_tokens=1000,
+            model=model,
+            messages=messages,  # type: ignore
+            max_tokens=1500,
+            temperature=0.7,
+            response_format={"type": "json_object"},
         )
 
         content = response.choices[0].message.content
         rawData = content.strip() if content is not None else ""
 
-        # Save new messages to database and cache
-        messages.append({"role": "assistant", "content": rawData})
-        await save_message_to_db(conversation_id, "user", item.message, db)
-        await save_message_to_db(conversation_id, "assistant", rawData, db)
-        await redis_manager.set_conversation_cache(conversation_id, messages)
+        if not rawData:
+            return {"error": "Empty response from AI"}
 
+        # Parse and validate JSON response
         try:
             data = json.loads(rawData)
-            return data
-        except json.JSONDecodeError:
-            return {"response": rawData}
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"JSON parsing error: {str(e)}, Raw response: {rawData}")
+            data = {
+                "extracted_questions": "I apologize, but I had trouble formatting my response. Could you please rephrase your last message?",
+                "examples": None,
+                "display_question": "I apologize, but I had trouble formatting my response. Could you please rephrase your last message?",
+                "summary": None,
+            }
+        finally:
+            # Save the raw response even if it's not valid JSON
+            await save_message_to_db(conversation_id, "user", item.message, db)
+            await save_message_to_db(conversation_id, "assistant", rawData, db)
+            # Update cache with new messages
+            messages.append({"role": "assistant", "content": rawData})
+            await redis_manager.set_conversation_cache(conversation_id, messages)
+
+        return data
+
     except Exception as e:
-        print("Error calling OpenAI API:", e)
-        return {"error": "Failed to get AI response"}
+        print(f"Error calling OpenAI API: {str(e)}")
+        return {"error": f"Failed to get AI response: {str(e)}"}
 
 
 async def get_conversation_history(

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import cast
 
 import uvicorn
 from ai_client import ask_AI, get_conversation_history
@@ -73,7 +74,7 @@ async def create_conversation(db: Session = Depends(get_db)):
 
     return ConversationResponse(
         id=str(conversation.id),
-        created_at=conversation.created_at,
+        created_at=cast(datetime, conversation.created_at),
     )
 
 
@@ -100,16 +101,32 @@ async def chat_message(
         if "error" in response:
             raise HTTPException(status_code=400, detail=response["error"])
 
+        # Extract the content to display - prioritize display_question, fallback to extracted_questions
+        content = (
+            response.get("display_question")
+            or response.get("extracted_questions")
+            or response.get("response")
+            or "I apologize, but I couldn't generate a proper response. Could you please try rephrasing your message?"
+        )
+
+        # Ensure content is a string
+        if not isinstance(content, str):
+            content = str(content)
+
         return MessageResponse(
             conversation_id=conversation_id,
             role="assistant",
-            content=(
-                response["display_question"] if "display_question" in response else ""
-            ),
+            content=content,
             created_at=datetime.utcnow(),
         )
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Unexpected error in chat_message: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="An unexpected error occurred. Please try again."
+        )
 
 
 # Get all conversations
@@ -122,7 +139,9 @@ async def get_conversations(
 
     return {
         "conversations": [
-            ConversationResponse(id=str(conv.id), created_at=conv.created_at)
+            ConversationResponse(
+                id=str(conv.id), created_at=cast(datetime, conv.created_at)
+            )
             for conv in conversations
         ]
     }
