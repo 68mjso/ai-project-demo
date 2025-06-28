@@ -160,12 +160,28 @@ Respond in JSON format with the following structure:
 With the following rules:
 - Always respond in JSON format.
 - If you cannot answer, return a JSON object with an error message.
-- Only set the "completed" field to `true` when you have enough information to conclude the conversation.
+- Set the "completed" field to `true` when you have enough information to conclude the conversation.
 ```
         """
         # Get conversation messages
         messages = await get_conversation_messages(conversation_id, db)
         messages.append({"role": "user", "content": prompt})
+
+        assistant_responses = [
+            message for message in messages if message["role"] == "assistant"
+        ]
+        answers = [message for message in messages if message["role"] == "user"]
+        if len(answers) > 10:
+            # If the conversation has more than 5 user messages, summarize the conversation
+            job_response = await search_job(assistant_responses[-1].get("summary", {}))
+            await save_message_to_db(
+                conversation_id,
+                "assistant",
+                json.dumps(job_response),
+                db,
+            )
+            messages.append({"role": "assistant", "content": json.dumps(job_response)})
+            return job_response
 
         # Ensure we have the required environment variables
         model = os.getenv("OPENAI_MODEL")
@@ -198,19 +214,100 @@ With the following rules:
                 "summary": {},
                 "completed": False,
             }
-        finally:
-            # Save the raw response even if it's not valid JSON
-            await save_message_to_db(conversation_id, "user", item.message, db)
+
+        await save_message_to_db(conversation_id, "user", item.message, db)
+
+        if not data["completed"]:
+            # Save the assistant's response to the database if the conversation is not completed
             await save_message_to_db(conversation_id, "assistant", rawData, db)
-            # Update cache with new messages
             messages.append({"role": "assistant", "content": rawData})
-            await redis_manager.set_conversation_cache(conversation_id, messages)
+        else:
+            # If the conversation is completed, search for jobs
+            job_response = await search_job(data.get("summary", {}))
+            await save_message_to_db(
+                conversation_id,
+                "assistant",
+                json.dumps(job_response),
+                db,
+            )
+            messages.append({"role": "assistant", "content": json.dumps(job_response)})
+            data = job_response
+
+        # Update cache with new messages
+        await redis_manager.set_conversation_cache(conversation_id, messages)
 
         return data
 
     except Exception as e:
         print(f"Error calling OpenAI API: {str(e)}")
         return {"error": f"Failed to get AI response: {str(e)}"}
+
+
+async def search_job(summary: Dict[str, str]):
+    """Search for jobs using the OpenAI API."""
+
+    system_prompt = """
+You are a professional headhunter focusing on finding job opportunities for users.
+Help users find job opportunities based on their profile and career aspirations.
+The job search should be based on the provided profile summary.
+The position must be actively hiring at the moment.
+
+DO NOT make up job postings. If you cannot find any jobs, return an empty list.
+
+Always respond in JSON format with the structure:
+```json
+{
+    "jobs_list": [
+        {
+            "title": "Job Title",
+            "company": "Company Name",
+            "location": "Job Location",
+            "description": "Job Description",
+            "url": "Link to job posting"
+        }
+    ],
+    "message": "Your message here"
+}
+"""
+
+    prompt = f"""
+I'm looking for job opportunities based on the following profile summary:
+```{json.dumps(summary)}```
+
+Please provide a list of actively hiring jobs that match this profile.
+Prefer jobs that is uploaded in the last 30 days.
+"""
+
+    # Ensure we have the required environment variables
+    model = os.getenv("OPENAI_MODEL")
+    if not model:
+        return {"error": "OpenAI model not configured"}
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=1500,
+        temperature=0.7,
+        response_format={"type": "json_object"},
+    )
+
+    content = response.choices[0].message.content
+    rawData = content.strip() if content is not None else ""
+
+    try:
+        data = json.loads(rawData)
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"JSON parsing error: {str(e)}, Raw response: {rawData}")
+        data = {
+            "jobs_list": [],
+            "message": "I apologize, but I had trouble formatting my response. Could you please rephrase your last message?",
+        }
+
+    print(f"Search job response: {data}")
+    return data
 
 
 async def get_conversation_history(

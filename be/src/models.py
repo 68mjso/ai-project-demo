@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+from typing import Dict, Any
 from database import Base
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, ForeignKey, String, Text
@@ -29,8 +30,9 @@ class MessageCreate(BaseModel):
 class MessageResponse(BaseModel):
     conversation_id: str
     role: str
-    content: dict[str, str | list[str]]
+    content: Dict[str, Any]
     created_at: datetime
+    completed: bool = False
 
     class Config:
         from_attributes = True

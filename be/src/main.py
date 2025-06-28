@@ -102,21 +102,24 @@ async def chat_message(
             raise HTTPException(status_code=400, detail=response["error"])
 
         # Extract the question to display
-        question = (
+        content = (
             response.get("next_question")
+            or response.get("message")
             or "I apologize, but I couldn't generate a proper response. Could you please try rephrasing your message?"
         )
         examples = response.get("examples", [])
+        jobs_list = response.get("jobs_list", [])
 
-        if not isinstance(question, str):
-            question = str(question)
+        if not isinstance(content, str):
+            content = str(content)
 
         return MessageResponse(
             conversation_id=conversation_id,
             role="assistant",
             content={
-                "next_question": question,
+                "next_question": content,
                 "examples": examples,
+                "jobs_list": jobs_list,
             },
             created_at=datetime.utcnow(),
         )
