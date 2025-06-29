@@ -4,9 +4,9 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+  gcc \
+  postgresql-client \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
 COPY requirements.txt .
@@ -21,4 +21,4 @@ COPY . .
 EXPOSE 3000
 
 # Command to run the application
-CMD ["run.sh", "dev"]
+CMD ["sh", "run.sh", "dev"]

@@ -31,40 +31,40 @@ services:
       timeout: 5s
       retries: 3
 
-  # backend:
-  #   build:
-  #     context: ./be
-  #     dockerfile: Dockerfile
-  #   container_name: ai_backend
-  #   ports:
-  #     - 3000:3000
-  #   environment:
-  #     - DATABASE_URL=postgresql://ai_postgres:ai_postgres@postgres:5432/ai_postgres
-  #     - REDIS_URL=redis://redis:6379
-  #     - OPENAI_HOST=https://aiportalapi.stu-platform.live/jpe
-  #     - OPENAI_KEY=<YOUR_OPENAI_API_KEY>
-  #     - OPENAI_MODEL=GPT-4o-mini
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ./be:/app
-  #   restart: unless-stopped
+  backend:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: ai_backend
+    ports:
+      - 3000:3000
+    environment:
+      - DATABASE_URL=postgresql://ai_postgres:ai_postgres@postgres:5432/ai_postgres
+      - REDIS_URL=redis://redis:6379
+      - OPENAI_HOST=https://aiportalapi.stu-platform.live/jpe
+      - OPENAI_KEY=<YOUR_OPENAI_API_KEY>
+      - OPENAI_MODEL=GPT-4o-mini
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./be:/app
+    restart: unless-stopped
 
-  # frontend:
-  #   build:
-  #     context: ./fe
-  #     dockerfile: Dockerfile
-  #   container_name: ai_frontend
-  #   ports:
-  #     - 5173:5173
-  #   depends_on:
-  #     - backend
-  #   volumes:
-  #     - ./fe:/app
-  #   restart: unless-stopped
+  frontend:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    container_name: ai_frontend
+    ports:
+      - 5173:5173
+    depends_on:
+      - backend
+    volumes:
+      - ./fe/src:/app/src
+    restart: unless-stopped
 
 volumes:
   postgres_data:
