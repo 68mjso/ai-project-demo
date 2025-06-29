@@ -146,6 +146,21 @@ const Chat = () => {
               </div>
             );
           }
+          if (message.role === "assistant") {
+            console.log(message)
+            const mes = renderMessage(message.content)
+              .split("```json")[1]
+              .split("```")[0];
+            const formattedMes = JSON.parse(mes);
+            const nextQues = formattedMes.next_question;
+            return (
+              <div key={i} className="flex">
+                <div className="bg-white rounded-xl shadow p-4 max-w-3xl text-gray-800 overflow-auto border markdown">
+                  <ReactMarkdown>{nextQues}</ReactMarkdown>
+                </div>
+              </div>
+            );
+          }
           return (
             <div key={i} className="flex">
               <div className="bg-white rounded-xl shadow p-4 max-w-3xl text-gray-800 overflow-auto border markdown">
