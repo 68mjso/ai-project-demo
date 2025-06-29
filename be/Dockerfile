@@ -21,4 +21,4 @@ COPY . .
 EXPOSE 3000
 
 # Command to run the application
-CMD ["sh", "run.sh", "dev"]
+CMD ["bash", "run.sh", "dev"]

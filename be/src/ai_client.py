@@ -140,8 +140,7 @@ async def ask_AI(
 If you need more information, ask the user specific questions.
 Always push the user to provide as much specific information as possible.
 
-Respond in JSON format with the following structure:
-```json
+Respond in JSON format with the following structure. The structure must be strictly followed.
 {{
     "next_question": "Your question here",
     "examples": ["Example 1", "Example 2"],
@@ -161,7 +160,6 @@ With the following rules:
 - Always respond in JSON format.
 - If you cannot answer, return a JSON object with an error message.
 - Set the "completed" field to `true` when you have enough information to conclude the conversation.
-```
         """
         # Get conversation messages
         messages = await get_conversation_messages(conversation_id, db)
@@ -217,7 +215,7 @@ With the following rules:
 
         await save_message_to_db(conversation_id, "user", item.message, db)
 
-        if not data["completed"]:
+        if not data.get("completed", False):
             # Save the assistant's response to the database if the conversation is not completed
             await save_message_to_db(conversation_id, "assistant", rawData, db)
             messages.append({"role": "assistant", "content": rawData})
@@ -255,7 +253,6 @@ The position must be actively hiring at the moment.
 DO NOT make up job postings. If you cannot find any jobs, return an empty list.
 
 Always respond in JSON format with the structure:
-```json
 {
     "jobs_list": [
         {
